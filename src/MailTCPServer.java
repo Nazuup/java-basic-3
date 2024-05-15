@@ -7,58 +7,59 @@ import java.util.Scanner;
 
 public class MailTCPServer {
 
-    private static final int times = 2;
-
-    private static String serverProcess(String message) {
-        StringBuilder sb = new StringBuilder();
-        //sb.append("✉️");
-        // for (int i = 0; i < times; i++) {
-        sb.append(message);
-        // }
-        //sb.append("✉️");
-        String result = sb.toString();
-        return result;
-    }
-
     public static void main(String arg[]) {
         try {
             /* 通信の準備をする */
             Scanner scanner = new Scanner(System.in);
             System.out.print("ポートを入力してください(5000など) → ");
             int port = scanner.nextInt();
-            scanner.close();
+            // scanner.close();
             System.out.println("localhostの" + port + "番ポートで待機します");
             ServerSocket server = new ServerSocket(port); // ポート番号を指定し、クライアントとの接続の準備を行う
 
             Socket socket = server.accept(); // クライアントからの接続要求を待ち、
             // 要求があればソケットを取得し接続を行う
             System.out.println("接続しました。相手の入力を待っています......");
-
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-
-            Mail mail = (Mail) ois.readObject();// Integerクラスでキャスト。
-
-            String mailTitle = mail.getTitle();
-            System.out.println("メールの件名は" + mailTitle);
-            String messageFromClient = mail.getMessage();
-            System.out.println("メールの内容は" + messageFromClient);
-
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 
-            Mail response = new Mail();
-            response.setTitle("Re. " + mail.title);
-            response.setMessage(serverProcess("こんにちは、サーバーです。\nメール「" + mailTitle + "」拝読いたしました。\nメールのお返しは" + times + "倍" + "です"));
+            while (true) {
 
-            oos.writeObject(response);
-            oos.flush();
+                Mail mail = (Mail) ois.readObject();// Integerクラスでキャスト。
 
-            // close処理
+                System.out.println("メールが届きました。");
+                String mailTitle = mail.getTitle();
+                System.out.println("メールの件名は" + mailTitle);
+                String messageFromClient = mail.getMessage();
+                System.out.println("メールの内容は" + messageFromClient);
 
-            ois.close();
-            oos.close();
-            // socketの終了。
-            socket.close();
-            server.close();
+                String responceTitle = "Re. " + mail.title;
+                System.out.println("メールの返信内容を入力して下さい ↓");
+                String message = scanner.next();
+
+                Mail response = new Mail();
+                response.setTitle(responceTitle);
+                response.setMessage(message);
+
+                oos.writeObject(response);
+                oos.flush();
+
+                System.out.println("メールを返信しました。クライアントからの応答をお待ちください");
+
+                Mail re = (Mail) ois.readObject();
+                if(!re.getTitle().equals("y")){
+                    System.out.println("接続が切断されました");
+                    scanner.close();
+                    // close処理
+                    ois.close();
+                    oos.close();
+                    // socketの終了。
+                    socket.close();
+                    server.close();
+                    break;
+                }
+
+            }
 
         } // エラーが発生したらエラーメッセージを表示してプログラムを終了する
         catch (BindException be) {

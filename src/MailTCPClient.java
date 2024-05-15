@@ -14,35 +14,60 @@ public class MailTCPClient {
             System.out.println("localhostの" + port + "番ポートに接続を要求します");
             Socket socket = new Socket("localhost", port);
             System.out.println("接続されました");
-
-            System.out.println("メールを送ります");
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-
-            System.out.println("件名を入力してください ↓");
-            String title = scanner.next();
-            System.out.println("メールの本文を入力してください ↓");
-            String message = scanner.next();
-            scanner.close();
-
-            Mail mail = new Mail();
-            mail.setTitle(title);
-            mail.setMessage(message);
-
-            oos.writeObject(mail);
-            oos.flush();
-
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 
-            Mail okaeshiMail = (Mail) ois.readObject();
+            while (true) {
 
-            String replayTitle = okaeshiMail.getTitle();
-            System.out.println("サーバからメールの返信がきました\n" + replayTitle);
-            String replayMessage = okaeshiMail.getMessage();
-            System.out.println(replayMessage);
+                System.out.println("メールを送ります");
 
-            ois.close();
-            oos.close();
-            socket.close();
+                System.out.println("件名を入力してください ↓");
+                String title = scanner.next();
+                System.out.println("メールの本文を入力してください ↓");
+                String message = scanner.next();
+
+                Mail mail = new Mail();
+                mail.setTitle(title);
+                mail.setMessage(message);
+
+                oos.writeObject(mail);
+                oos.flush();
+                System.out.println("メールを送信しました。返信が来るまでお待ちください");
+
+                Mail responce = (Mail) ois.readObject();
+
+                String replayTitle = responce.getTitle();
+                System.out.println("サーバからメールの返信がきました\n" + replayTitle);
+                String replayMessage = responce.getMessage();
+                System.out.println(replayMessage);
+
+
+                System.out.println("メールを再度送信しますか？(y/n)");
+                String retry = scanner.next();
+
+                Mail re = new Mail();
+                re.setTitle(retry);
+                oos.writeObject(re);
+                oos.flush();
+
+                if (retry.equals("n")) {
+                    System.out.println("接続を切断します");
+                    scanner.close();
+                    ois.close();
+                    oos.close();
+                    socket.close();
+                    break;
+                } else if (!retry.equals("y")) {
+                    System.out.println("入力方法が異なります");
+                    System.out.println("接続を切断します");
+                    scanner.close();
+                    ois.close();
+                    oos.close();
+                    socket.close();
+                    break;
+                }
+
+            }
 
         } // エラーが発生したらエラーメッセージを表示してプログラムを終了する
         catch (BindException be) {
